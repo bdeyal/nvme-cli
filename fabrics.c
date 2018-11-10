@@ -41,6 +41,7 @@
 #include "argconfig.h"
 
 #include "common.h"
+#include "logger.h"
 
 #define NVMF_HOSTID_SIZE	36
 
@@ -178,24 +179,21 @@ static int add_ctrl(const char *argstr)
 
 	fd = open(PATH_NVME_FABRICS, O_RDWR);
 	if (fd < 0) {
-		fprintf(stderr, "Failed to open %s: %s\n",
-			 PATH_NVME_FABRICS, strerror(errno));
 		ret = -errno;
+		nvmecli_perror("Failed to open %s", PATH_NVME_FABRICS);
 		goto out;
 	}
 
 	if (write(fd, argstr, len) != len) {
-		fprintf(stderr, "Failed to write to %s: %s\n",
-			 PATH_NVME_FABRICS, strerror(errno));
 		ret = -errno;
+		nvmecli_perror("Failed to write to %s", PATH_NVME_FABRICS);
 		goto out_close;
 	}
 
 	len = read(fd, buf, BUF_SIZE);
 	if (len < 0) {
-		fprintf(stderr, "Failed to read from %s: %s\n",
-			 PATH_NVME_FABRICS, strerror(errno));
 		ret = -errno;
+		nvmecli_perror("Failed to read from %s", PATH_NVME_FABRICS);
 		goto out_close;
 	}
 
@@ -219,7 +217,7 @@ static int add_ctrl(const char *argstr)
 	}
 
 out_fail:
-	fprintf(stderr, "Failed to parse ctrl info for \"%s\"\n", argstr);
+	nvmecli_error("Failed to parse ctrl info for \"%s\"", argstr);
 	ret = -EINVAL;
 out_close:
 	close(fd);
@@ -234,13 +232,13 @@ static int remove_ctrl_by_path(char *sysfs_path)
 	fd = open(sysfs_path, O_WRONLY);
 	if (fd < 0) {
 		ret = errno;
-		fprintf(stderr, "Failed to open %s: %s\n", sysfs_path,
-				strerror(errno));
+		nvmecli_perror("Failed to open %s", sysfs_path);
 		goto out;
 	}
 
 	if (write(fd, "1", 1) != 1) {
 		ret = errno;
+		nvmecli_perror("Failed to write %s", sysfs_path);
 		goto out_close;
 	}
 
@@ -287,8 +285,7 @@ static int nvmf_get_log_page_discovery(const char *dev_path,
 	fd = open(dev_path, O_RDWR);
 	if (fd < 0) {
 		error = -errno;
-		fprintf(stderr, "Failed to open %s: %s\n",
-				dev_path, strerror(errno));
+		nvmecli_perror("Failed to open %s",	dev_path);
 		goto out;
 	}
 
@@ -443,8 +440,7 @@ static void save_discovery_log(struct nvmf_disc_rsp_page_hdr *log, int numrec)
 
 	fd = open(cfg.raw, O_CREAT|O_RDWR|O_TRUNC, S_IRUSR|S_IWUSR);
 	if (fd < 0) {
-		fprintf(stderr, "failed to open %s: %s\n",
-			cfg.raw, strerror(errno));
+		nvmecli_perror("failed to open %s", cfg.raw);
 		return;
 	}
 
@@ -452,8 +448,7 @@ static void save_discovery_log(struct nvmf_disc_rsp_page_hdr *log, int numrec)
 			numrec * sizeof(struct nvmf_disc_rsp_page_entry);
 	ret = write(fd, log, len);
 	if (ret < 0)
-		fprintf(stderr, "failed to write to %s: %s\n",
-			cfg.raw, strerror(errno));
+		nvmecli_perror("failed to write to %s", cfg.raw);
 	else
 		printf("Discovery log is saved to %s\n", cfg.raw);
 
@@ -559,13 +554,13 @@ static int build_options(char *argstr, int max_len)
 	int len;
 
 	if (!cfg.transport) {
-		fprintf(stderr, "need a transport (-t) argument\n");
+		nvmecli_error("need a transport (-t) argument");
 		return -EINVAL;
 	}
 
 	if (strncmp(cfg.transport, "loop", 4)) {
 		if (!cfg.traddr) {
-			fprintf(stderr, "need a address (-a) argument\n");
+			nvmecli_error("need a address (-a) argument");
 			return -EINVAL;
 		}
 	}
@@ -613,8 +608,7 @@ static int connect_ctrl(struct nvmf_disc_rsp_page_entry *e)
 	case NVME_NQN_NVME:
 		break;
 	default:
-		fprintf(stderr, "skipping unsupported subtype %d\n",
-			 e->subtype);
+		nvmecli_error("skipping unsupported subtype %d", e->subtype);
 		return -EINVAL;
 	}
 
@@ -703,7 +697,7 @@ static int connect_ctrl(struct nvmf_disc_rsp_page_entry *e)
 				return -EINVAL;
 			break;
 		default:
-			fprintf(stderr, "skipping unsupported adrfam\n");
+			nvmecli_error("skipping unsupported adrfam");
 			return -EINVAL;
 		}
 		break;
@@ -722,13 +716,12 @@ static int connect_ctrl(struct nvmf_disc_rsp_page_entry *e)
 				return -EINVAL;
 			break;
 		default:
-			fprintf(stderr, "skipping unsupported adrfam\n");
+			nvmecli_error("skipping unsupported adrfam");
 			return -EINVAL;
 		}
 		break;
 	default:
-		fprintf(stderr, "skipping unsupported transport %d\n",
-				 e->trtype);
+		nvmecli_error("skipping unsupported transport %d", e->trtype);
 		return -EINVAL;
 	}
 
@@ -754,10 +747,9 @@ static int connect_ctrls(struct nvmf_disc_rsp_page_hdr *log, int numrec)
 		/* already connected print message	*/
 		if (instance == -EALREADY) {
 			const char *traddr = log->entries[i].traddr;
-			fprintf(stderr,
-				"traddr=%.*s is already connected\n",
-				space_strip_len(NVMF_TRADDR_SIZE, traddr),
-				traddr);
+			nvmecli_warn("traddr=%.*s is already connected",
+                         space_strip_len(NVMF_TRADDR_SIZE, traddr),
+                         traddr);
 			continue;
 		}
 
@@ -795,22 +787,20 @@ static int do_discover(char *argstr, bool connect)
 			print_discovery_log(log, numrec);
 		break;
 	case DISC_GET_NUMRECS:
-		fprintf(stderr,
-			"Get number of discovery log entries failed.\n");
+		nvmecli_error("Get number of discovery log entries failed");
 		break;
 	case DISC_GET_LOG:
-		fprintf(stderr, "Get discovery log entries failed.\n");
+		nvmecli_error("Get discovery log entries failed.");
 		break;
 	case DISC_NO_LOG:
-		fprintf(stdout, "No discovery log entries to fetch.\n");
+		nvmecli_notice("No discovery log entries to fetch");
 		ret = DISC_OK;
 		break;
 	case DISC_NOT_EQUAL:
-		fprintf(stderr,
-		"Numrec values of last two get discovery log page not equal\n");
+        nvmecli_error("Numrec values of last two get discovery log page not equal");
 		break;
 	default:
-		fprintf(stderr, "Get discovery log page failed: %d\n", ret);
+		nvmecli_error("Get discovery log page failed: %d", ret);
 		break;
 	}
 
@@ -826,8 +816,7 @@ static int discover_from_conf_file(const char *desc, char *argstr,
 
 	f = fopen(PATH_NVMF_DISC, "r");
 	if (f == NULL) {
-		fprintf(stderr, "No discover params given and no %s conf\n",
-			PATH_NVMF_DISC);
+		nvmecli_error("No discover params given and no %s conf", PATH_NVMF_DISC);
 		return -EINVAL;
 	}
 
@@ -837,14 +826,14 @@ static int discover_from_conf_file(const char *desc, char *argstr,
 
 		args = strdup(line);
 		if (!args) {
-			fprintf(stderr, "failed to strdup args\n");
+			nvmecli_error("failed to strdup args");
 			ret = -ENOMEM;
 			goto out;
 		}
 
 		argv = calloc(MAX_DISC_ARGS, BUF_SIZE);
 		if (!argv) {
-			fprintf(stderr, "failed to allocate argv vector\n");
+			nvmecli_error("failed to allocate argv vector");
 			free(args);
 			ret = -ENOMEM;
 			goto out;
@@ -948,7 +937,7 @@ int connect(const char *desc, int argc, char **argv)
 		return ret;
 
 	if (!cfg.nqn) {
-		fprintf(stderr, "need a -n argument\n");
+		nvmecli_error("need a -n argument");
 		return -EINVAL;
 	}
 
@@ -983,8 +972,7 @@ static int disconnect_subsys(char *nqn, char *ctrl)
 
 	fd = open(sysfs_nqn_path, O_RDONLY);
 	if (fd < 0) {
-		fprintf(stderr, "Failed to open %s: %s\n",
-				sysfs_nqn_path, strerror(errno));
+		nvmecli_perror("Failed to open %s", sysfs_nqn_path);
 		goto free;
 	}
 
@@ -1063,15 +1051,15 @@ int disconnect(const char *desc, int argc, char **argv)
 		return ret;
 
 	if (!cfg.nqn && !cfg.device) {
-		fprintf(stderr, "need a -n or -d argument\n");
+		nvmecli_error("need a -n or -d argument");
 		return -EINVAL;
 	}
 
 	if (cfg.nqn) {
 		ret = disconnect_by_nqn(cfg.nqn);
 		if (ret < 0)
-			fprintf(stderr, "Failed to disconnect by NQN: %s\n",
-				cfg.nqn);
+			nvmecli_error("Failed to disconnect by NQN: %s",
+                          cfg.nqn);
 		else {
 			printf("NQN:%s disconnected %d controller(s)\n", cfg.nqn, ret);
 			ret = 0;
@@ -1081,8 +1069,8 @@ int disconnect(const char *desc, int argc, char **argv)
 	if (cfg.device) {
 		ret = disconnect_by_device(cfg.device);
 		if (ret)
-			fprintf(stderr,
-				"Failed to disconnect by device name: %s\n",
+			nvmecli_error(
+				"Failed to disconnect by device name: %s",
 				cfg.device);
 	}
 

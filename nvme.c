@@ -53,6 +53,7 @@
 #include "argconfig.h"
 
 #include "fabrics.h"
+#include "logger.h"
 
 #define array_len(x) ((size_t)(sizeof(x) / sizeof(x[0])))
 #define min(x, y) ((x) > (y) ? (y) : (x))
@@ -4687,6 +4688,17 @@ int main(int argc, char **argv)
 {
 	int ret;
 
+    ret = nvmecli_open_logger();
+    if (ret) {
+        perror("cannot open nvme-cli logger");
+        return ret;
+    }
+
+    nvmecli_info("Starting program %s version %s built: %s",
+                 nvme.name,
+                 nvme.version,
+                 __DATE__);
+
 	nvme.extensions->parent = &nvme;
 	if (argc < 2) {
 		general_help(&builtin);
@@ -4697,6 +4709,8 @@ int main(int argc, char **argv)
 	ret = handle_plugin(argc - 1, &argv[1], nvme.extensions);
 	if (ret == -ENOTTY)
 		general_help(&builtin);
+
+    nvmecli_close_logger();
 
 	return ret;
 }

@@ -1,5 +1,6 @@
 CFLAGS ?= -O2 -g -Wall -Werror -I.
 CFLAGS += -std=gnu99
+LDFLAGS += -rdynamic
 CPPFLAGS += -D_GNU_SOURCE -D__CHECK_ENDIAN__
 LIBUUID = $(shell $(LD) -o /dev/null -luuid >/dev/null 2>&1; echo $$?)
 NVME = nvme
@@ -32,7 +33,7 @@ override CFLAGS += -DNVME_VERSION='"$(NVME_VERSION)"'
 NVME_DPKG_VERSION=1~`lsb_release -sc`
 
 OBJS := argconfig.o suffix.o parser.o nvme-print.o nvme-ioctl.o \
-	nvme-lightnvm.o fabrics.o json.o nvme-models.o plugin.o
+	nvme-lightnvm.o fabrics.o json.o nvme-models.o plugin.o logger.o
 
 PLUGIN_OBJS :=					\
 	plugins/intel/intel-nvme.o		\
