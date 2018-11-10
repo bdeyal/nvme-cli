@@ -159,25 +159,31 @@ int nvmecli_log(struct nvmecli_logger *logger,
         }
 		fputc('\n', stderr);
         append_location_info(logger->memstream, loc);
-		/* fall through */
+		break;
 
 	case NVMECLI_LOGLEVEL_NOTICE:
+		vfprintf(stdout, format, ap2);
+		va_end(ap2);
+        putchar('\n');
+        break;
 	case NVMECLI_LOGLEVEL_INFO:
 	case NVMECLI_LOGLEVEL_DEBUG:
 	case NVMECLI_LOGLEVEL_TRACE:
 	default:
-		fflush(logger->memstream);
-        if (logger->message) {
-            logger->message[logger->msglen] = '\0';
-            send_syslog(logger->message, prefix, sysloglevel(loc));
-        }
-		rewind(logger->memstream);
+        break;
 	}
+
+    fflush(logger->memstream);
+    if (logger->message) {
+        logger->message[logger->msglen] = '\0';
+        send_syslog(logger->message, prefix, sysloglevel(loc));
+    }
+    rewind(logger->memstream);
 
 	return 0;
 }
 
-#if 0
+#if 1
 const char* multiline_message =
     "hello world\n"
     "One two three four\n"

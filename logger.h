@@ -46,10 +46,10 @@ int nvmecli_log(struct nvmecli_logger* logger,
 #define _nvmecli_msg(indicator, level, fmt, ...)						\
 	do {																\
 		extern struct nvmecli_logger g_logger;							\
-		if (level >= g_logger.logging_threshold) {						\
+		if (level >= g_logger.logging_threshold) {                      \
 			struct nvmecli_location loc = { __FILE__, __LINE__, __func__, level}; \
-			nvmecli_log(&g_logger, &loc, indicator,	 fmt, ##__VA_ARGS__); \
-		}																\
+			nvmecli_log(&g_logger, &loc, indicator, (fmt), ##__VA_ARGS__);  \
+		}																    \
 	} while (0)
 
 #define nvmecli_trace(_format, ...) \
