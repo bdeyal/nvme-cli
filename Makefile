@@ -111,10 +111,14 @@ control: nvme.control.in NVME-VERSION-FILE
 
 pkg: control nvme.control.in
 	mkdir -p nvme-$(NVME_VERSION)$(SBINDIR)
-	mkdir -p nvme-$(NVME_VERSION)$(PREFIX)/share/man/man1
-	mkdir -p nvme-$(NVME_VERSION)/DEBIAN/
-	cp Documentation/*.1 nvme-$(NVME_VERSION)$(PREFIX)/share/man/man1
 	cp nvme nvme-$(NVME_VERSION)$(SBINDIR)
+	mkdir -p nvme-$(NVME_VERSION)$(PREFIX)/share/man/man1
+	cp Documentation/*.1 nvme-$(NVME_VERSION)$(PREFIX)/share/man/man1
+	mkdir -p nvme-$(NVME_VERSION)$(PREFIX)/share/bash-completion/completions
+	cp ./completions/bash-nvme-completion.sh nvme-$(NVME_VERSION)$(PREFIX)/share/bash-completion/completions/nvme
+	mkdir -p nvme-$(NVME_VERSION)$(SYSCONFDIR)/rsyslog.d
+	cp ./rsyslog/nvme-cli.conf nvme-$(NVME_VERSION)$(SYSCONFDIR)/rsyslog.d/nvme-cli.conf
+	mkdir -p nvme-$(NVME_VERSION)/DEBIAN/
 	cp control nvme-$(NVME_VERSION)/DEBIAN/
 
 # Make a reproducible tar.gz in the super-directory. Uses
