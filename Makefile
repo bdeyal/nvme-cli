@@ -87,7 +87,11 @@ install-bash-completion:
 	$(INSTALL) -d $(DESTDIR)$(PREFIX)/share/bash-completion/completions
 	$(INSTALL) -m 644 -T ./completions/bash-nvme-completion.sh $(DESTDIR)$(PREFIX)/share/bash-completion/completions/nvme
 
-install: install-bin install-man install-bash-completion
+install-rsyslog-conf:
+	$(INSTALL) -d $(DESTDIR)$(SYSCONFDIR)/rsyslog.d
+	$(INSTALL) -m 644 -T ./rsyslog/nvme-cli.conf $(DESTDIR)$(SYSCONFDIR)/rsyslog.d/nvme-cli.conf
+
+install: install-bin install-man install-bash-completion install-rsyslog-conf
 
 nvme.spec: nvme.spec.in NVME-VERSION-FILE
 	sed -e 's/@@VERSION@@/$(NVME_VERSION)/g' < $< > $@+

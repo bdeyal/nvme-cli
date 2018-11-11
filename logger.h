@@ -39,17 +39,17 @@ int nvmecli_close_logger();
 int nvmecli_log(struct nvmecli_logger* logger,
 				const struct nvmecli_location *loc,
 				const char *prefix,
-                int os_error,
+				int os_error,
 				const char *format,
 				...) __attribute__ ((format (printf, 5, 6)));
 
-#define _nvmecli_msg(indicator, level, fmt, ...)						\
-	do {																\
-		extern struct nvmecli_logger g_logger;							\
-		if (level >= g_logger.logging_threshold) {                      \
+#define _nvmecli_msg(indicator, level, fmt, ...)			\
+	do {								\
+		extern struct nvmecli_logger g_logger;			\
+		if (level >= g_logger.logging_threshold) {		\
 			struct nvmecli_location loc = { __FILE__, __LINE__, __func__, level}; \
-			nvmecli_log(&g_logger, &loc, indicator, (fmt), ##__VA_ARGS__);  \
-		}																    \
+			nvmecli_log(&g_logger, &loc, indicator, (fmt), ##__VA_ARGS__); \
+		}							\
 	} while (0)
 
 #define nvmecli_trace(_format, ...) \
@@ -87,10 +87,10 @@ int nvmecli_log(struct nvmecli_logger* logger,
  *  Abort / Assert messages that are logged
  */
 #define nvmecli_abort(_format, ...)                                            \
-    do {                                                                       \
-        _nvmecli_msg("F:", NVMECLI_LOGLEVEL_FATAL, 0, _format, ##__VA_ARGS__); \
-        abort();                                                               \
-    } while(0)
+	do {								\
+		_nvmecli_msg("F:", NVMECLI_LOGLEVEL_FATAL, 0, _format, ##__VA_ARGS__); \
+		abort();						\
+	} while(0)
 
 /*
  *  Specific assert macro that respects NDEBUG
@@ -99,12 +99,12 @@ int nvmecli_log(struct nvmecli_logger* logger,
 #define nvmecli_assert(expr)  ((void)0)
 #else
 #define nvmecli_assert(expr)                         \
-    do {                                             \
-        if (!(expr)) {                               \
-            log_fatal("Assertion Failure: " #expr);  \
-            abort();                                 \
-        }                                            \
-    } while (0)
+	do {					     \
+		if (!(expr)) {			     \
+			log_fatal("Assertion Failure: " #expr);	\
+			abort();				\
+		}						\
+	} while (0)
 #endif
 
 

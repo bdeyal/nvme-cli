@@ -16,7 +16,7 @@ static void append_stacktrace(FILE *fp, int frames_to_chop)
 	void* stack_trace[BT_SIZE];
 	char** traces;
 	int st_size;
-    int i;
+	int i;
 
 	fprintf(fp, "\n=== nvme-cli stack trace ===\n");
 
@@ -38,14 +38,16 @@ static void append_stacktrace(FILE *fp, int frames_to_chop)
 	free(traces);
 }
 
-static void append_location_info(FILE *fp, const struct nvmecli_location *loc)
+static inline
+void append_location_info(FILE *fp, const struct nvmecli_location *loc)
 {
 	fprintf(fp, " in %s:%s():L%d ", loc->fname, loc->func, loc->line);
 }
 
-static void append_perror(FILE *fp, int os_error)
+static inline
+void append_perror(FILE *fp, int os_error)
 {
-    fprintf(fp, ": %s", strerror(os_error));
+	fprintf(fp, ": %s", strerror(os_error));
 }
 
 /*
@@ -80,6 +82,11 @@ static int sysloglevel(const struct nvmecli_location *loc)
 	}
 }
 
+/*
+ * syslog, or maybe the actual logging daemon prints multimne messages
+ * in the same line with some separatoer. The functions splits and
+ * send line by line.
+ */
 static void send_syslog(char *message, const char *pfx, int level)
 {
 	char *line, *saveptr;
@@ -88,7 +95,9 @@ static void send_syslog(char *message, const char *pfx, int level)
 	while (line) {
 		syslog(level | LOG_USER, "%s %s", pfx, line);
 		line = strtok_r(NULL, "\n", &saveptr);
-        pfx = "   ";
+
+		/* same width as prefix */
+		pfx = "   ";
 	}
 }
 
@@ -109,12 +118,12 @@ int nvmecli_open_logger()
 
 int nvmecli_close_logger()
 {
-    nvmecli_info("=== Closing NVMe CLI Logger ===");
+	nvmecli_info("=== Closing NVMe CLI Logger ===");
 
 	if (g_logger.memstream) {
-        fclose(g_logger.memstream);
-        g_logger.memstream = NULL;
-    }
+		fclose(g_logger.memstream);
+		g_logger.memstream = NULL;
+	}
 
 	if (g_logger.message) {
 		free(g_logger.message);
@@ -130,11 +139,11 @@ int nvmecli_close_logger()
 }
 
 int nvmecli_log(struct nvmecli_logger *logger,
-				const struct nvmecli_location *loc,
-				const char *prefix,
-                int os_error,
-				const char *format,
-				...)
+		const struct nvmecli_location *loc,
+		const char *prefix,
+		int os_error,
+		const char *format,
+		...)
 {
 	va_list ap1, ap2;
 	va_start(ap1, format);
@@ -145,7 +154,7 @@ int nvmecli_log(struct nvmecli_logger *logger,
 
 	switch (loc->level) {
 	case NVMECLI_LOGLEVEL_FATAL:
-        /* start at 2 since this and append function need not be printed */
+		/* start at 2 since this and append function need not be printed */
 		append_stacktrace(logger->memstream, 2);
 		/* fall through */
 
@@ -153,44 +162,44 @@ int nvmecli_log(struct nvmecli_logger *logger,
 	case NVMECLI_LOGLEVEL_WARN:
 		vfprintf(stderr, format, ap2);
 		va_end(ap2);
-        if (os_error) {
-            append_perror(stderr, os_error);
-            append_perror(logger->memstream, os_error);
-        }
+		if (os_error) {
+			append_perror(stderr, os_error);
+			append_perror(logger->memstream, os_error);
+		}
 		fputc('\n', stderr);
-        append_location_info(logger->memstream, loc);
+		append_location_info(logger->memstream, loc);
 		break;
 
 	case NVMECLI_LOGLEVEL_NOTICE:
 		vfprintf(stdout, format, ap2);
 		va_end(ap2);
-        putchar('\n');
-        break;
+		putchar('\n');
+		break;
 	case NVMECLI_LOGLEVEL_INFO:
 	case NVMECLI_LOGLEVEL_DEBUG:
 	case NVMECLI_LOGLEVEL_TRACE:
 	default:
-        break;
+		break;
 	}
 
-    fflush(logger->memstream);
-    if (logger->message) {
-        logger->message[logger->msglen] = '\0';
-        send_syslog(logger->message, prefix, sysloglevel(loc));
-    }
-    rewind(logger->memstream);
+	fflush(logger->memstream);
+	if (logger->message) {
+		logger->message[logger->msglen] = '\0';
+		send_syslog(logger->message, prefix, sysloglevel(loc));
+	}
+	rewind(logger->memstream);
 
 	return 0;
 }
 
 #ifdef TEST_LOGGING
 const char* multiline_message =
-    "hello world\n"
-    "One two three four\n"
-    "\n"
-    "\n"
-    "int n = nvmecli_open_logger();\n"
-    "London does not wait for me";
+	"hello world\n"
+	"One two three four\n"
+	"\n"
+	"\n"
+	"int n = nvmecli_open_logger();\n"
+	"London does not wait for me";
 
 
 void send_fatal()
@@ -208,14 +217,14 @@ int main()
 
 	nvmecli_trace("Trace Message and very long message");
 	nvmecli_debug("Debug Message");
-    nvmecli_debug(multiline_message);
+	nvmecli_debug("%s", multiline_message);
 	nvmecli_info("Info Message");
 	nvmecli_notice("Notice Message");
 	nvmecli_warn("Warn Message");
 	nvmecli_error("Error Message");
-    errno = 114;
-	nvmecli_perror("Perror Message");
-    send_fatal();
+	errno = 114;
+	nvmecli_perror("perror Message");
+	send_fatal();
 
 	nvmecli_close_logger();
 	return 0;
