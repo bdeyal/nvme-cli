@@ -183,7 +183,7 @@ int nvmecli_log(struct nvmecli_logger *logger,
 	return 0;
 }
 
-#if 1
+#ifdef TEST_LOGGING
 const char* multiline_message =
     "hello world\n"
     "One two three four\n"
