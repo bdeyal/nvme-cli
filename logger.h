@@ -33,7 +33,7 @@ struct nvmecli_logger {
 /*
  *  init / destroy logger
  */
-int nvmecli_open_logger();
+int nvmecli_open_logger(const char *levelname);
 int nvmecli_close_logger();
 
 int nvmecli_log(struct nvmecli_logger* logger,
@@ -86,7 +86,7 @@ int nvmecli_log(struct nvmecli_logger* logger,
 /*
  *  Abort / Assert messages that are logged
  */
-#define nvmecli_abort(_format, ...)                                            \
+#define nvmecli_abort(_format, ...)					\
 	do {								\
 		_nvmecli_msg("F:", NVMECLI_LOGLEVEL_FATAL, 0, _format, ##__VA_ARGS__); \
 		abort();						\

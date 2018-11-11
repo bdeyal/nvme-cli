@@ -83,9 +83,9 @@ static int sysloglevel(const struct nvmecli_location *loc)
 }
 
 /*
- * syslog, or maybe the actual logging daemon prints multimne messages
- * in the same line with some separatoer. The functions splits and
- * send line by line.
+ * syslog, or maybe the actual logging daemon prints multine messages
+ * in the same line with some ugly separatoer. The function splits and
+ * send line by line (and discards empty line as well)
  */
 static void send_syslog(char *message, const char *pfx, int level)
 {
@@ -101,13 +101,40 @@ static void send_syslog(char *message, const char *pfx, int level)
 	}
 }
 
-int nvmecli_open_logger()
+static int loglevel_from_name(const char *lname)
+{
+	if (!lname) return NVMECLI_LOGLEVEL_DEBUG;
+
+	struct {
+		const char *name;
+		int level;
+	} names [] = {
+		{ "trace",  NVMECLI_LOGLEVEL_TRACE  },
+		{ "debug",  NVMECLI_LOGLEVEL_DEBUG  },
+		{ "info",   NVMECLI_LOGLEVEL_INFO   },
+		{ "notice", NVMECLI_LOGLEVEL_NOTICE },
+		{ "warn",   NVMECLI_LOGLEVEL_WARN   },
+		{ "error",  NVMECLI_LOGLEVEL_ERROR  },
+		{ "fatal",  NVMECLI_LOGLEVEL_FATAL  },
+		{ NULL, 0 }
+	};
+
+	for (int i = 0; names[i].name != NULL; i++) {
+		if (strcmp(lname, names[i].name) == 0)
+			return names[i].level;
+	}
+
+	fprintf(stderr, "level \"%s\" not found. using debug\n", lname);
+	return NVMECLI_LOGLEVEL_DEBUG;
+}
+
+int nvmecli_open_logger(const char *levelname)
 {
 	g_logger.memstream = open_memstream(&g_logger.message, &g_logger.msglen);
 	if (!g_logger.memstream)
 		return errno;
 
-	g_logger.logging_threshold = NVMECLI_LOGLEVEL_TRACE;
+	g_logger.logging_threshold = loglevel_from_name(levelname);
 
 	openlog("nvme-cli", LOG_NDELAY, LOG_USER);
 
@@ -209,7 +236,7 @@ void send_fatal()
 
 int main()
 {
-	int n = nvmecli_open_logger();
+	int n = nvmecli_open_logger("debug");
 	if (n != 0) {
 		printf("open_memstream: %s\n", strerror(n));
 		return 1;

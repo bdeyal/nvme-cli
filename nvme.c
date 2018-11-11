@@ -4688,16 +4688,17 @@ int main(int argc, char **argv)
 {
 	int ret;
 
-    ret = nvmecli_open_logger();
-    if (ret) {
-        perror("cannot open nvme-cli logger");
-        return ret;
-    }
+	/* TODO: get level name from outside */
+	ret = nvmecli_open_logger("debug");
+	if (ret) {
+		perror("cannot open nvme-cli logger");
+		return ret;
+	}
 
-    nvmecli_info("Starting program %s version %s built: %s",
-                 nvme.name,
-                 nvme.version,
-                 __DATE__);
+	nvmecli_info("Starting program %s version %s built: %s",
+		     nvme.name,
+		     nvme.version,
+		     __DATE__);
 
 	nvme.extensions->parent = &nvme;
 	if (argc < 2) {
